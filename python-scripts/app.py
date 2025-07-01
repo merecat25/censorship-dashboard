@@ -105,7 +105,6 @@ app.layout = html.Div(children=[
     html.P("Live monitoring of network interference, probe data, and global outages."),
 
     dcc.Graph(id='latency-graph', figure={}),
-,
 
     html.H2("Recent IODA Outage Reports", style={'marginTop': '40px'}),
     dash_table.DataTable(
