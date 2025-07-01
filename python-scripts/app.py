@@ -1,0 +1,213 @@
+import dash
+from dash import html, dcc, dash_table
+from dash.dependencies import Input, Output
+import pandas as pd
+import plotly.express as px
+import requests
+import feedparser
+
+# ----------------------------------------
+# News feed sources
+# ----------------------------------------
+NEWS_FEEDS = {
+    "Reuters (Top News)": "https://www.reutersagency.com/feed/?best-topics=top-news&post_type=best",
+    "BBC World": "http://feeds.bbci.co.uk/news/world/rss.xml",
+    "AP News": "https://apnews.com/rss",
+    "EFF (Digital Rights)": "https://www.eff.org/rss/updates.xml",
+    "Access Now": "https://www.accessnow.org/feed/",
+    "Internet Society": "https://www.internetsociety.org/feed/"
+}
+
+# ----------------------------------------
+# Fetch IODA outage reports
+# ----------------------------------------
+def fetch_ioda_outages(limit=10):
+    try:
+        url = "https://ioda.inetintel.cc.gatech.edu/api/v1/signals"
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+
+        if not isinstance(data, list) or len(data) == 0:
+            raise ValueError("IODA returned empty or invalid data")
+
+        rows = []
+        for item in data[:limit]:
+            rows.append({
+                "source": "IODA",
+                "region": item.get("location"),
+                "event_time": item.get("start_time"),
+                "type": item.get("signal_type")
+            })
+        return pd.DataFrame(rows)
+
+    except Exception as e:
+        print(f"[⚠️] IODA fetch failed, using sample data: {e}")
+        return pd.DataFrame([
+            {"source": "IODA", "region": "Iran", "event_time": "2025-06-28T14:12", "type": "Internet blackout"},
+            {"source": "IODA", "region": "Russia", "event_time": "2025-06-27T22:10", "type": "BGP drop"},
+            {"source": "IODA", "region": "India", "event_time": "2025-06-27T18:00", "type": "Darknet loss"},
+        ])
+
+# ----------------------------------------
+# Fetch OONI measurements
+# ----------------------------------------
+def fetch_ooni_measurements(domain="telegram.org", limit=20):
+    try:
+        url = f"https://api.ooni.io/api/v1/measurements?domain={domain}&limit={limit}"
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json().get("results", [])
+
+        rows = []
+        for entry in data:
+            if not entry.get("measurement_start_time"):
+                continue
+            rows.append({
+                "source": "OONI",
+                "domain": domain,
+                "country": entry.get("probe_cc"),
+                "time": entry.get("measurement_start_time"),
+                "blocked": entry.get("blocking", "unknown")
+            })
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"[⚠️] OONI fetch failed, using sample data: {e}")
+        return pd.DataFrame([
+            {"source": "OONI", "domain": domain, "country": "IR", "time": "2025-06-27T12:00", "blocked": "true"},
+            {"source": "OONI", "domain": domain, "country": "RU", "time": "2025-06-27T11:00", "blocked": "false"},
+        ])
+
+# ----------------------------------------
+# Fetch RSS News
+# ----------------------------------------
+def fetch_news(feed_url):
+    try:
+        feed = feedparser.parse(feed_url)
+        items = feed.entries[:5]
+        return [{"title": item.title, "link": item.link} for item in items]
+    except Exception as e:
+        print(f"[⚠️] News fetch failed: {e}")
+        return [{"title": "News feed unavailable", "link": "#"}]
+
+# ----------------------------------------
+# Load RIPE ping CSV
+# ----------------------------------------
+df = pd.read_csv("../data/ripe_ping_5001.csv")
+df["timestamp"] = pd.to_datetime(df["timestamp"])
+fig = px.line(df, x="timestamp", y="avg_latency", title="Latency to 8.8.8.8 (RIPE Measurement 5001)")
+fig.update_layout(xaxis_title="Time", yaxis_title="Latency (ms)")
+
+ioda_data = fetch_ioda_outages(limit=10)
+
+# ----------------------------------------
+# Dash App
+# ----------------------------------------
+app = dash.Dash(__name__)
+
+app.layout = html.Div(children=[
+    html.H1("Censorship Dashboard", style={'textAlign': 'center'}),
+    html.P("Live monitoring of network interference, probe data, and global outages."),
+
+    dcc.Graph(id='latency-graph', figure=fig),
+
+    html.H2("Recent IODA Outage Reports", style={'marginTop': '40px'}),
+    dash_table.DataTable(
+        data=ioda_data.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in ioda_data.columns],
+        style_table={'overflowX': 'auto'},
+        style_cell={'padding': '8px', 'textAlign': 'left'},
+        style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'}
+    ),
+
+    html.H2("Recent OONI Measurements", style={'marginTop': '40px'}),
+    html.Label("Select a Domain:"),
+    dcc.Dropdown(
+        id='domain-dropdown',
+        options=[
+            {'label': 'Telegram', 'value': 'telegram.org'},
+            {'label': 'BBC', 'value': 'bbc.com'},
+            {'label': 'Wikipedia', 'value': 'wikipedia.org'},
+            {'label': 'YouTube', 'value': 'youtube.com'},
+            {'label': 'NYTimes', 'value': 'nytimes.com'}
+        ],
+        value='telegram.org',
+        style={'width': '50%'}
+    ),
+
+    html.Div(id='ooni-table-container', style={'marginTop': '20px'}),
+    html.Div(id='ooni-graph-container', style={'marginTop': '40px'}),
+
+    html.H2("News Feed", style={'marginTop': '40px'}),
+    html.Label("Select News Source:"),
+    dcc.Dropdown(
+        id='news-source-dropdown',
+        options=[{"label": k, "value": v} for k, v in NEWS_FEEDS.items()],
+        value=list(NEWS_FEEDS.values())[0],
+        style={'width': '70%'}
+    ),
+    html.Div(id='news-feed', style={'marginTop': '20px'})
+])
+
+# ----------------------------------------
+# OONI Callback
+# ----------------------------------------
+@app.callback(
+    Output('ooni-table-container', 'children'),
+    Output('ooni-graph-container', 'children'),
+    Input('domain-dropdown', 'value')
+)
+def update_ooni_components(domain):
+    df = fetch_ooni_measurements(domain=domain, limit=20)
+
+    if df.empty or "time" not in df.columns:
+        return html.Div("No OONI data available."), html.Div()
+
+    df = df.dropna(subset=["country"])
+    df["time"] = pd.to_datetime(df["time"])
+    df["blocked"] = df["blocked"].astype(str)
+
+    table = dash_table.DataTable(
+        data=df.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in df.columns],
+        style_data_conditional=[
+            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'true'"}, "backgroundColor": "#ffcccc", "color": "red"},
+            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'false'"}, "backgroundColor": "#ccffcc", "color": "green"}
+        ],
+        style_table={'overflowX': 'auto'},
+        style_cell={'padding': '8px', 'textAlign': 'left'},
+        style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'}
+    )
+
+    graph = px.histogram(df, x="country", color="blocked",
+                         title=f"Blocking Status by Country for {domain}",
+                         labels={"blocked": "Blocked"},
+                         barmode="group")
+    return table, dcc.Graph(figure=graph)
+
+# ----------------------------------------
+# News Callback
+# ----------------------------------------
+@app.callback(
+    Output('news-feed', 'children'),
+    Input('news-source-dropdown', 'value')
+)
+def update_news_feed(feed_url):
+    articles = fetch_news(feed_url)
+    return html.Ul([
+        html.Li(html.A(article["title"], href=article["link"], target="_blank"))
+        for article in articles
+    ])
+
+# ----------------------------------------
+# Run App
+# ----------------------------------------
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+
+
+
