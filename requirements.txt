@@ -1,0 +1,16 @@
+altgraph==0.17.2
+colorama==0.4.6
+future==0.18.2
+numpy==2.2.6
+pandas==2.2.3
+pefile==2021.9.3
+pyinstaller==4.8
+pyinstaller-hooks-contrib==2022.0
+pypiwin32==223
+python-dateutil==2.9.0.post0
+pytz==2025.2
+pywin32==303
+pywin32-ctypes==0.2.0
+six==1.17.0
+tzdata==2025.2
+WMI==1.5.1
