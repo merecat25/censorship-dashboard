@@ -87,11 +87,11 @@ def fetch_news(feed_url):
 # ----------------------------------------
 # Load local latency data from CSV
 # ----------------------------------------
-df = pd.read_csv("../data/ripe_ping_5001.csv")
-df["timestamp"] = pd.to_datetime(df["timestamp"])
+#df = pd.read_csv("../data/ripe_ping_5001.csv")
+#df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-fig = px.line(df, x="timestamp", y="avg_latency", title="Latency to 8.8.8.8 (RIPE Measurement 5001)")
-fig.update_layout(xaxis_title="Time", yaxis_title="Latency (ms)")
+#fig = px.line(df, x="timestamp", y="avg_latency", title="Latency to 8.8.8.8 (RIPE Measurement 5001)")
+#fig.update_layout(xaxis_title="Time", yaxis_title="Latency (ms)")
 
 ioda_data = fetch_ioda_outages(limit=10)
 
@@ -104,7 +104,8 @@ app.layout = html.Div(children=[
     html.H1("Censorship Dashboard", style={'textAlign': 'center'}),
     html.P("Live monitoring of network interference, probe data, and global outages."),
 
-    dcc.Graph(id='latency-graph', figure=fig),
+    dcc.Graph(id='latency-graph', figure={}),
+,
 
     html.H2("Recent IODA Outage Reports", style={'marginTop': '40px'}),
     dash_table.DataTable(
