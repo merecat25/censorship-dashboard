@@ -5,10 +5,17 @@ import pandas as pd
 import plotly.express as px
 import requests
 import feedparser
-import os
 
 # ----------------------------------------
-# Function: Fetch live IODA outage reports
+# Constants
+# ----------------------------------------
+NEWS_FEEDS = {
+    "EFF (Digital Rights)": "https://www.eff.org/rss/updates.xml",
+    "Access Now (Censorship News)": "https://www.accessnow.org/feed/"
+}
+
+# ----------------------------------------
+# Function: Fetch IODA outage reports
 # ----------------------------------------
 def fetch_ioda_outages(limit=10):
     try:
@@ -66,20 +73,26 @@ def fetch_ooni_measurements(domain="telegram.org", limit=20):
         ])
 
 # ----------------------------------------
-# Try loading RIPE latency data from CSV
+# Function: Fetch news feed
 # ----------------------------------------
-try:
-    df = pd.read_csv("data/ripe_ping_5001.csv")
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    fig = px.line(df, x="timestamp", y="avg_latency", title="Latency to 8.8.8.8 (RIPE Measurement 5001)")
-    fig.update_layout(xaxis_title="Time", yaxis_title="Latency (ms)")
-except FileNotFoundError:
-    print("[⚠️] No RIPE latency data found, skipping latency graph.")
-    fig = px.line(title="Latency graph unavailable (no data file found)")
+def fetch_news(feed_url):
+    try:
+        feed = feedparser.parse(feed_url)
+        items = feed.entries[:5]
+        return [{"title": item.title, "link": item.link} for item in items]
+    except Exception as e:
+        print(f"[⚠️] News fetch failed: {e}")
+        return [{"title": "News feed unavailable", "link": "#"}]
 
 # ----------------------------------------
-# Fetch IODA data
+# Load local latency data from CSV
 # ----------------------------------------
+df = pd.read_csv("../data/ripe_ping_5001.csv")
+df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+fig = px.line(df, x="timestamp", y="avg_latency", title="Latency to 8.8.8.8 (RIPE Measurement 5001)")
+fig.update_layout(xaxis_title="Time", yaxis_title="Latency (ms)")
+
 ioda_data = fetch_ioda_outages(limit=10)
 
 # ----------------------------------------
@@ -87,7 +100,6 @@ ioda_data = fetch_ioda_outages(limit=10)
 # ----------------------------------------
 app = dash.Dash(__name__)
 
-# Layout
 app.layout = html.Div(children=[
     html.H1("Censorship Dashboard", style={'textAlign': 'center'}),
     html.P("Live monitoring of network interference, probe data, and global outages."),
@@ -118,11 +130,21 @@ app.layout = html.Div(children=[
         style={'width': '50%'}
     ),
     html.Div(id='ooni-table-container', style={'marginTop': '20px'}),
-    html.Div(id='ooni-graph-container', style={'marginTop': '40px'})
+    html.Div(id='ooni-graph-container', style={'marginTop': '40px'}),
+
+    html.H2("News Section", style={'marginTop': '40px'}),
+    html.Label("Select News Source:"),
+    dcc.Dropdown(
+        id='news-source-dropdown',
+        options=[{"label": name, "value": url} for name, url in NEWS_FEEDS.items()],
+        value=list(NEWS_FEEDS.values())[0],
+        style={'width': '70%'}
+    ),
+    html.Div(id='news-feed', style={'marginTop': '20px'})
 ])
 
 # ----------------------------------------
-# Callback: Update OONI table and graph on domain change
+# Callback: Update OONI table and graph
 # ----------------------------------------
 @app.callback(
     Output('ooni-table-container', 'children'),
@@ -138,14 +160,10 @@ def update_ooni_components(domain):
         data=df.to_dict("records"),
         columns=[{"name": col, "id": col} for col in df.columns],
         style_data_conditional=[
-            {
-                "if": {"column_id": "blocked", "filter_query": "{blocked} = 'true'"},
-                "backgroundColor": "#ffcccc", "color": "red"
-            },
-            {
-                "if": {"column_id": "blocked", "filter_query": "{blocked} = 'false'"},
-                "backgroundColor": "#ccffcc", "color": "green"
-            }
+            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'true'"},
+             "backgroundColor": "#ffcccc", "color": "red"},
+            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'false'"},
+             "backgroundColor": "#ccffcc", "color": "green"}
         ],
         style_table={'overflowX': 'auto'},
         style_cell={'padding': '8px', 'textAlign': 'left'},
@@ -160,10 +178,25 @@ def update_ooni_components(domain):
     return table, dcc.Graph(figure=graph)
 
 # ----------------------------------------
+# Callback: Update news section
+# ----------------------------------------
+@app.callback(
+    Output('news-feed', 'children'),
+    Input('news-source-dropdown', 'value')
+)
+def update_news_feed(feed_url):
+    articles = fetch_news(feed_url)
+    return html.Ul([
+        html.Li(html.A(article["title"], href=article["link"], target="_blank"))
+        for article in articles
+    ])
+
+# ----------------------------------------
 # Run app
 # ----------------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
