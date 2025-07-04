@@ -14,28 +14,6 @@ NEWS_FEEDS = {
     "Access Now (Censorship News)": "https://www.accessnow.org/feed/"
 }
 
-NETBLOCKS_FEED = "https://netblocks.org/rss"
-
-# ----------------------------------------
-# Function: Fetch NetBlocks RSS feed
-# ----------------------------------------
-def fetch_netblocks_feed():
-    try:
-        feed = feedparser.parse(NETBLOCKS_FEED)
-        items = feed.entries[:5]
-        return pd.DataFrame([{
-            "title": item.title,
-            "link": item.link,
-            "published": item.published
-        } for item in items])
-    except Exception as e:
-        print(f"[⚠️] NetBlocks RSS fetch failed: {e}")
-        return pd.DataFrame([{
-            "title": "Feed unavailable",
-            "link": "#",
-            "published": "N/A"
-        }])
-
 # ----------------------------------------
 # Function: Fetch OONI measurement results
 # ----------------------------------------
@@ -76,44 +54,64 @@ def fetch_news(feed_url):
         return [{"title": "News feed unavailable", "link": "#"}]
 
 # ----------------------------------------
-# Load NetBlocks data
-# ----------------------------------------
-netblocks_data = fetch_netblocks_feed()
-
-# ----------------------------------------
 # Create Dash app
 # ----------------------------------------
 app = dash.Dash(__name__)
+server = app.server  # for Render deployment
 
 app.layout = html.Div(children=[
     html.H1("Censorship Dashboard", style={'textAlign': 'center'}),
     html.P("Live monitoring of network interference, probe data, and global outages."),
 
-    # Static ping latency chart from Iran
-    html.Img(
-        src='/assets/iran_ping_rtt.png',
-        style={
-            'width': '100%',
-            'maxWidth': '1000px',
-            'margin': '0 auto',
-            'display': 'block',
-            'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
-            'borderRadius': '6px'
-        }
-    ),
+    # ---------- First Static Chart ----------
+    html.Div([
+        html.Img(
+            src='/assets/iran_ping_rtt.png',
+            style={
+                'width': '100%',
+                'maxWidth': '1000px',
+                'margin': '0 auto',
+                'display': 'block',
+                'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
+                'borderRadius': '6px'
+            }
+        ),
+        html.P(
+            "Source: Cloudflare Radar (Ping RTT to Iran)",
+            style={'textAlign': 'center', 'fontSize': '0.9em', 'color': '#666'}
+        ),
+        dcc.Markdown("""
+        **Description:**  
+        This chart shows average round-trip time (RTT) latency to Iran over time, pulled from a RIPE Atlas probe.  
+        Spikes or flatlining may indicate packet loss, filtering, or routing changes. 
+        """, style={'padding': '0 5%', 'fontSize': '0.95em'})
+    ]),
 
-    html.H2("NetBlocks Outage Updates", style={'marginTop': '40px'}),
-    dash_table.DataTable(
-        data=netblocks_data.to_dict("records"),
-        columns=[
-            {"name": "title", "id": "title"},
-            {"name": "published", "id": "published"},
-            {"name": "link", "id": "link"}
-        ],
-        style_table={'overflowX': 'auto'},
-        style_cell={'padding': '8px', 'textAlign': 'left'},
-        style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'}
-    ),
+    html.Hr(),
+
+    # ---------- Second Cloudflare Chart ----------
+    html.Div([
+        html.Img(
+            src='/assets/cloudflare_radar_chart.png',  # update this filename as needed
+            style={
+                'width': '100%',
+                'maxWidth': '1000px',
+                'margin': '0 auto',
+                'display': 'block',
+                'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
+                'borderRadius': '6px'
+            }
+        ),
+        html.P(
+            "Source: Cloudflare Radar (Global Network Disruptions)",
+            style={'textAlign': 'center', 'fontSize': '0.9em', 'color': '#666'}
+        ),
+        dcc.Markdown("""
+        **Description:**  
+        This image shows planned network disruptions in Iraq as detected by Cloudflare Radar.  
+        These disruptions may be due to internet shutdowns, submarine cable failures, or power outages. 
+        """, style={'padding': '0 5%', 'fontSize': '0.95em'})
+    ]),
 
     html.H2("Recent OONI Measurements", style={'marginTop': '40px'}),
     html.Label("Select a Domain:"),
@@ -199,6 +197,3 @@ def update_news_feed(feed_url):
 # ----------------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
