@@ -85,14 +85,8 @@ def fetch_news(feed_url):
         return [{"title": "News feed unavailable", "link": "#"}]
 
 # ----------------------------------------
-# Load local latency data from CSV
+# Load IODA data
 # ----------------------------------------
-#df = pd.read_csv("../data/ripe_ping_5001.csv")
-#df["timestamp"] = pd.to_datetime(df["timestamp"])
-
-#fig = px.line(df, x="timestamp", y="avg_latency", title="Latency to 8.8.8.8 (RIPE Measurement 5001)")
-#fig.update_layout(xaxis_title="Time", yaxis_title="Latency (ms)")
-
 ioda_data = fetch_ioda_outages(limit=10)
 
 # ----------------------------------------
@@ -104,7 +98,19 @@ app.layout = html.Div(children=[
     html.H1("Censorship Dashboard", style={'textAlign': 'center'}),
     html.P("Live monitoring of network interference, probe data, and global outages."),
 
-    dcc.Graph(id='latency-graph', figure={}),
+    # Static ping latency chart from Iran
+    html.Img(
+        src='/assets/iran_ping_rtt.png',
+        alt='Ping RTT Chart',
+        style={
+            'width': '100%',
+            'maxWidth': '1000px',
+            'margin': '0 auto',
+            'display': 'block',
+            'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
+            'borderRadius': '6px'
+        }
+    ),
 
     html.H2("Recent IODA Outage Reports", style={'marginTop': '40px'}),
     dash_table.DataTable(
@@ -170,10 +176,12 @@ def update_ooni_components(domain):
         style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'}
     )
 
-    graph = px.histogram(df, x="country", color="blocked",
-                         title=f"Blocking Status by Country for {domain}",
-                         labels={"blocked": "Blocked"},
-                         barmode="group")
+    graph = px.histogram(
+        df, x="country", color="blocked",
+        title=f"Blocking Status by Country for {domain}",
+        labels={"blocked": "Blocked"},
+        barmode="group"
+    )
 
     return table, dcc.Graph(figure=graph)
 
@@ -196,9 +204,6 @@ def update_news_feed(feed_url):
 # ----------------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
 
 
 
