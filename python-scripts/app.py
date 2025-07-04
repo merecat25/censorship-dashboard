@@ -14,36 +14,27 @@ NEWS_FEEDS = {
     "Access Now (Censorship News)": "https://www.accessnow.org/feed/"
 }
 
+NETBLOCKS_FEED = "https://netblocks.org/rss"
+
 # ----------------------------------------
-# Function: Fetch IODA outage reports
+# Function: Fetch NetBlocks RSS feed
 # ----------------------------------------
-def fetch_ioda_outages(limit=10):
+def fetch_netblocks_feed():
     try:
-        url = "https://ioda.inetintel.cc.gatech.edu/api/v1/signals"
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-
-        if not isinstance(data, list) or len(data) == 0:
-            raise ValueError("IODA returned empty or invalid data")
-
-        rows = []
-        for item in data[:limit]:
-            rows.append({
-                "source": "IODA",
-                "region": item.get("location"),
-                "event_time": item.get("start_time"),
-                "type": item.get("signal_type")
-            })
-        return pd.DataFrame(rows)
-
+        feed = feedparser.parse(NETBLOCKS_FEED)
+        items = feed.entries[:5]
+        return pd.DataFrame([{
+            "title": item.title,
+            "link": item.link,
+            "published": item.published
+        } for item in items])
     except Exception as e:
-        print(f"[⚠️] IODA fetch failed, using sample data: {e}")
-        return pd.DataFrame([
-            {"source": "IODA", "region": "Iran", "event_time": "2025-06-28T14:12", "type": "Internet blackout"},
-            {"source": "IODA", "region": "Russia", "event_time": "2025-06-27T22:10", "type": "BGP drop"},
-            {"source": "IODA", "region": "India", "event_time": "2025-06-27T18:00", "type": "Darknet loss"},
-        ])
+        print(f"[⚠️] NetBlocks RSS fetch failed: {e}")
+        return pd.DataFrame([{
+            "title": "Feed unavailable",
+            "link": "#",
+            "published": "N/A"
+        }])
 
 # ----------------------------------------
 # Function: Fetch OONI measurement results
@@ -85,9 +76,9 @@ def fetch_news(feed_url):
         return [{"title": "News feed unavailable", "link": "#"}]
 
 # ----------------------------------------
-# Load IODA data
+# Load NetBlocks data
 # ----------------------------------------
-ioda_data = fetch_ioda_outages(limit=10)
+netblocks_data = fetch_netblocks_feed()
 
 # ----------------------------------------
 # Create Dash app
@@ -99,22 +90,26 @@ app.layout = html.Div(children=[
     html.P("Live monitoring of network interference, probe data, and global outages."),
 
     # Static ping latency chart from Iran
-   html.Img(
-    src='/assets/iran_ping_rtt.png',
-    style={
-        'width': '100%',
-        'maxWidth': '1000px',
-        'margin': '0 auto',
-        'display': 'block',
-        'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
-        'borderRadius': '6px'
-    }
-),
+    html.Img(
+        src='/assets/iran_ping_rtt.png',
+        style={
+            'width': '100%',
+            'maxWidth': '1000px',
+            'margin': '0 auto',
+            'display': 'block',
+            'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
+            'borderRadius': '6px'
+        }
+    ),
 
-    html.H2("Recent IODA Outage Reports", style={'marginTop': '40px'}),
+    html.H2("NetBlocks Outage Updates", style={'marginTop': '40px'}),
     dash_table.DataTable(
-        data=ioda_data.to_dict("records"),
-        columns=[{"name": col, "id": col} for col in ioda_data.columns],
+        data=netblocks_data.to_dict("records"),
+        columns=[
+            {"name": "title", "id": "title"},
+            {"name": "published", "id": "published"},
+            {"name": "link", "id": "link"}
+        ],
         style_table={'overflowX': 'auto'},
         style_cell={'padding': '8px', 'textAlign': 'left'},
         style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'}
@@ -129,7 +124,8 @@ app.layout = html.Div(children=[
             {'label': 'BBC', 'value': 'bbc.com'},
             {'label': 'Wikipedia', 'value': 'wikipedia.org'},
             {'label': 'YouTube', 'value': 'youtube.com'},
-            {'label': 'NYTimes', 'value': 'nytimes.com'}
+            {'label': 'NYTimes', 'value': 'nytimes.com'},
+            {'label': 'Signal', 'value': 'signal.org'}
         ],
         value='telegram.org',
         style={'width': '50%'}
