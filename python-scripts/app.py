@@ -99,18 +99,17 @@ app.layout = html.Div(children=[
     html.P("Live monitoring of network interference, probe data, and global outages."),
 
     # Static ping latency chart from Iran
-    html.Img(
-        src='/assets/iran_ping_rtt.png',
-        alt='Ping RTT Chart',
-        style={
-            'width': '100%',
-            'maxWidth': '1000px',
-            'margin': '0 auto',
-            'display': 'block',
-            'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
-            'borderRadius': '6px'
-        }
-    ),
+   html.Img(
+    src='/assets/iran_ping_rtt.png',
+    style={
+        'width': '100%',
+        'maxWidth': '1000px',
+        'margin': '0 auto',
+        'display': 'block',
+        'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
+        'borderRadius': '6px'
+    }
+),
 
     html.H2("Recent IODA Outage Reports", style={'marginTop': '40px'}),
     dash_table.DataTable(
