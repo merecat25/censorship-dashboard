@@ -14,48 +14,31 @@ NEWS_FEEDS = {
     "Access Now (Censorship News)": "https://www.accessnow.org/feed/"
 }
 
-OONI_COUNTRIES = {"RU", "CN", "IR", "IQ", "BY", "ET", "IN", "EG", "TR", "SA", "CU", "VE", "NG", "SD"}
+MONITORED_COUNTRIES = [
+    "RU", "CN", "IR", "IQ", "BY", "ET", "IN",
+    "EG", "TR", "SA", "CU", "VE", "NG", "SD"
+]
+
+DISCLAIMER = "⚠️ OONI data may contain false positives. Some measurements from unlikely regions may appear due to test anomalies."
 
 # ----------------------------------------
-# Functions
+# Function: Fetch OONI measurement results
 # ----------------------------------------
-def fetch_ioda_outages(limit=10):
-    try:
-        url = "https://ioda.inetintel.cc.gatech.edu/api/v1/signals"
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        rows = []
-        for item in data[:limit]:
-            rows.append({
-                "source": "IODA",
-                "region": item.get("location"),
-                "event_time": item.get("start_time"),
-                "type": item.get("signal_type")
-            })
-        return pd.DataFrame(rows)
-    except Exception as e:
-        print(f"[⚠️] IODA fetch failed, using sample data: {e}")
-        return pd.DataFrame([
-            {"source": "IODA", "region": "Iran", "event_time": "2025-06-28T14:12", "type": "Internet blackout"},
-            {"source": "IODA", "region": "Russia", "event_time": "2025-06-27T22:10", "type": "BGP drop"},
-            {"source": "IODA", "region": "India", "event_time": "2025-06-27T18:00", "type": "Darknet loss"},
-        ])
-
-def fetch_ooni_measurements(domain="telegram.org", limit=50):
+def fetch_ooni_measurements(domain="telegram.org", limit=100):
     try:
         url = f"https://api.ooni.io/api/v1/measurements?domain={domain}&limit={limit}"
         r = requests.get(url, timeout=10)
         r.raise_for_status()
         data = r.json().get("results", [])
+
         rows = []
         for entry in data:
-            country = entry.get("probe_cc")
-            if country in OONI_COUNTRIES:
+            cc = entry.get("probe_cc")
+            if cc in MONITORED_COUNTRIES:
                 rows.append({
                     "source": "OONI",
                     "domain": domain,
-                    "country": country,
+                    "country": cc,
                     "time": entry.get("measurement_start_time"),
                     "blocked": entry.get("blocking", "unknown")
                 })
@@ -67,6 +50,9 @@ def fetch_ooni_measurements(domain="telegram.org", limit=50):
             {"source": "OONI", "domain": domain, "country": "RU", "time": "2025-06-27T11:00", "blocked": "false"},
         ])
 
+# ----------------------------------------
+# Function: Fetch news feed
+# ----------------------------------------
 def fetch_news(feed_url):
     try:
         feed = feedparser.parse(feed_url)
@@ -76,10 +62,8 @@ def fetch_news(feed_url):
         print(f"[⚠️] News fetch failed: {e}")
         return [{"title": "News feed unavailable", "link": "#"}]
 
-ioda_data = fetch_ioda_outages(limit=10)
-
 # ----------------------------------------
-# App layout
+# Create Dash app
 # ----------------------------------------
 app = dash.Dash(__name__)
 
@@ -87,6 +71,7 @@ app.layout = html.Div(children=[
     html.H1("Censorship Dashboard", style={'textAlign': 'center'}),
     html.P("Live monitoring of network interference, probe data, and global outages."),
 
+    # ---------- First Static Chart ----------
     html.Div([
         html.Img(
             src='/assets/iran_ping_rtt.png',
@@ -99,31 +84,29 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
+        html.P("Ping latency to Iran. Updated manually from RIPE Atlas.", style={'textAlign': 'center', 'fontSize': '14px'})
+    ], style={'marginBottom': '40px'}),
+
+    # ---------- Cloudflare Outage Chart ----------
+    html.Div([
         html.Img(
-            src='/assets/cloudflare_outage.png',
+            src='/assets/cloudflare_outage_chart.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
-                'margin': '20px auto',
+                'margin': '0 auto',
                 'display': 'block',
                 'boxShadow': '0 4px 10px rgba(0,0,0,0.1)',
                 'borderRadius': '6px'
             }
         ),
-        html.P("📊 Source: Cloudflare Radar", style={'textAlign': 'center', 'fontSize': '0.9em'})
-    ]),
+        html.P("Cloudflare Outage Map – Source: Cloudflare Radar", style={'textAlign': 'center', 'fontSize': '14px'})
+    ], style={'marginBottom': '40px'}),
 
-    html.H2("Recent IODA Outage Reports", style={'marginTop': '40px'}),
-    dash_table.DataTable(
-        data=ioda_data.to_dict("records"),
-        columns=[{"name": col, "id": col} for col in ioda_data.columns],
-        style_table={'overflowX': 'auto'},
-        style_cell={'padding': '8px', 'textAlign': 'left'},
-        style_header={'fontWeight': 'bold', 'backgroundColor': '#f0f0f0'}
-    ),
+    # ---------- OONI Section ----------
+    html.H2("OONI Measurement Data"),
+    html.P(DISCLAIMER, style={'color': 'red', 'fontStyle': 'italic'}),
 
-    html.H2("Recent OONI Measurements", style={'marginTop': '40px'}),
-    html.Div("⚠️ Disclaimer: OONI data is community-collected and may occasionally include false positives or errors. Interpret results with caution.", style={'color': 'darkred', 'marginBottom': '20px'}),
     html.Label("Select a Domain:"),
     dcc.Dropdown(
         id='domain-dropdown',
@@ -138,9 +121,11 @@ app.layout = html.Div(children=[
         value='telegram.org',
         style={'width': '50%'}
     ),
+
     html.Div(id='ooni-table-container', style={'marginTop': '20px'}),
     html.Div(id='ooni-graph-container', style={'marginTop': '40px'}),
 
+    # ---------- News Section ----------
     html.H2("News Section", style={'marginTop': '40px'}),
     html.Label("Select News Source:"),
     dcc.Dropdown(
@@ -153,7 +138,7 @@ app.layout = html.Div(children=[
 ])
 
 # ----------------------------------------
-# Callbacks
+# Callback: Update OONI table and graph
 # ----------------------------------------
 @app.callback(
     Output('ooni-table-container', 'children'),
@@ -161,18 +146,22 @@ app.layout = html.Div(children=[
     Input('domain-dropdown', 'value')
 )
 def update_ooni_components(domain):
-    df = fetch_ooni_measurements(domain=domain, limit=50)
-    if df.empty:
-        return html.P("No recent measurements found."), None
+    df = fetch_ooni_measurements(domain=domain, limit=100)
     df["time"] = pd.to_datetime(df["time"])
     df["blocked"] = df["blocked"].astype(str)
 
+    # Ensure all monitored countries are represented
+    all_countries = pd.DataFrame({"country": MONITORED_COUNTRIES})
+    df = pd.merge(all_countries, df, on="country", how="left")
+
     table = dash_table.DataTable(
-        data=df.to_dict("records"),
+        data=df.fillna("N/A").to_dict("records"),
         columns=[{"name": col, "id": col} for col in df.columns],
         style_data_conditional=[
-            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'true'"}, "backgroundColor": "#ffcccc", "color": "red"},
-            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'false'"}, "backgroundColor": "#ccffcc", "color": "green"}
+            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'true'"},
+             "backgroundColor": "#ffcccc", "color": "red"},
+            {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'false'"},
+             "backgroundColor": "#ccffcc", "color": "green"}
         ],
         style_table={'overflowX': 'auto'},
         style_cell={'padding': '8px', 'textAlign': 'left'},
@@ -180,7 +169,7 @@ def update_ooni_components(domain):
     )
 
     graph = px.histogram(
-        df, x="country", color="blocked",
+        df.dropna(subset=["blocked"]), x="country", color="blocked",
         title=f"Blocking Status by Country for {domain}",
         labels={"blocked": "Blocked"},
         barmode="group"
@@ -188,6 +177,9 @@ def update_ooni_components(domain):
 
     return table, dcc.Graph(figure=graph)
 
+# ----------------------------------------
+# Callback: Update news section
+# ----------------------------------------
 @app.callback(
     Output('news-feed', 'children'),
     Input('news-source-dropdown', 'value')
@@ -204,3 +196,4 @@ def update_news_feed(feed_url):
 # ----------------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
