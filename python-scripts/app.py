@@ -90,7 +90,7 @@ app.layout = html.Div(children=[
     # ---------- Cloudflare Outage Chart ----------
     html.Div([
         html.Img(
-            src='/assets/cloudflare_outage_chart.png',
+            src='/assets/cloudflare_radar_chart.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -147,16 +147,16 @@ app.layout = html.Div(children=[
 )
 def update_ooni_components(domain):
     df = fetch_ooni_measurements(domain=domain, limit=100)
+    df = df[df["country"].isin(["RU", "CN", "IR", "IQ", "BY", "ET", "IN", "EG", "TR", "SA", "CU", "VE"])]
     df["time"] = pd.to_datetime(df["time"])
     df["blocked"] = df["blocked"].astype(str)
 
-    # Ensure all monitored countries are represented
-    all_countries = pd.DataFrame({"country": MONITORED_COUNTRIES})
-    df = pd.merge(all_countries, df, on="country", how="left")
+    # Remove duplicate country+block status combos to declutter the table
+    dedup = df.drop_duplicates(subset=["country", "blocked"])
 
     table = dash_table.DataTable(
-        data=df.fillna("N/A").to_dict("records"),
-        columns=[{"name": col, "id": col} for col in df.columns],
+        data=dedup.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in dedup.columns],
         style_data_conditional=[
             {"if": {"column_id": "blocked", "filter_query": "{blocked} = 'true'"},
              "backgroundColor": "#ffcccc", "color": "red"},
@@ -169,7 +169,7 @@ def update_ooni_components(domain):
     )
 
     graph = px.histogram(
-        df.dropna(subset=["blocked"]), x="country", color="blocked",
+        df, x="country", color="blocked",
         title=f"Blocking Status by Country for {domain}",
         labels={"blocked": "Blocked"},
         barmode="group"
