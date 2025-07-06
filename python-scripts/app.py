@@ -90,7 +90,7 @@ app.layout = html.Div(children=[
     # ---------- Cloudflare Outage Chart ----------
     html.Div([
         html.Img(
-            src='/assets/cloudflare_radar_chart.png',
+            src='/assets/iran_chart.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -100,7 +100,7 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
-        html.P("Cloudflare Outage Map – Source: Cloudflare Radar", style={'textAlign': 'center', 'fontSize': '14px'})
+        html.P("Source: ioda.inetintel.cc.gatech.edu/. Shows a recent outage in Iran, since restored.", style={'textAlign': 'center', 'fontSize': '14px'})
     ], style={'marginBottom': '40px'}),
 
     # ---------- OONI Section ----------
