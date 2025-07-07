@@ -2,14 +2,15 @@ import json
 import matplotlib.pyplot as plt
 import os
 
-input_file = "ripe_oneoff.json"
+input_file = "results.json"
 output_dir = "static/images"
 
 os.makedirs(output_dir, exist_ok=True)
 
 with open(input_file) as f:
-    data = [json.loads(line) for line in f if line.strip()]
-
+    raw = [json.loads(line) for line in f if line.strip()]
+    # Flatten if outer structure is a list of lists
+    data = [item for sublist in raw for item in (sublist if isinstance(sublist, list) else [sublist])]
 
 probe_ids = []
 avg_rtts = []
