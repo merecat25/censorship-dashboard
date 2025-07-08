@@ -1,0 +1,66 @@
+
+# the URL is "atlas.ripe.net/api/v2/measurements/"
+
+{
+  "info": {
+    "name": "RIPE Atlas Basic API",
+    "_postman_id": "1f62c50c-3e3e-43dd-bc21-d07cf2e8e1e4",
+    "description": "Basic API requests for testing RIPE Atlas measurements",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get recent measurements",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://atlas.ripe.net/api/v2/measurements/",
+          "protocol": "https",
+          "host": ["atlas", "ripe", "net"],
+          "path": ["api", "v2", "measurements"]
+        }
+      }
+    },
+    {
+      "name": "Create ping measurement",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Key {{api_key}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"definitions\": [\n    {\n      \"target\": \"8.8.8.8\",\n      \"description\": \"Ping to Google DNS\",\n      \"type\": \"ping\",\n      \"af\": 4,\n      \"is_oneoff\": true\n    }\n  ],\n  \"probes\": [\n    {\n      \"requested\": 3,\n      \"type\": \"area\",\n      \"value\": \"WW\"\n    }\n  ],\n  \"is_oneoff\": true\n}"
+        },
+        "url": {
+          "raw": "https://atlas.ripe.net/api/v2/measurements/",
+          "protocol": "https",
+          "host": ["atlas", "ripe", "net"],
+          "path": ["api", "v2", "measurements"]
+        }
+      }
+    },
+    {
+      "name": "Get results by measurement ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://atlas.ripe.net/api/v2/measurements/{{measurement_id}}/results/",
+          "protocol": "https",
+          "host": ["atlas", "ripe", "net"],
+          "path": ["api", "v2", "measurements", "{{measurement_id}}", "results"]
+        }
+      }
+    }
+  ],
+  "event": []
+}
