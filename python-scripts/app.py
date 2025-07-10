@@ -74,7 +74,7 @@ app.layout = html.Div(children=[
     # ---------- First Static Chart ----------
     html.Div([
         html.Img(
-            src='/assets/iran_ping2_rtt.png',
+            src='/assets/myanmar.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
