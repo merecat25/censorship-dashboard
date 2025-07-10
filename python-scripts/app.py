@@ -84,7 +84,7 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
-        html.P("Ping latency to Iran. Updated manually from RIPE Atlas.", style={'textAlign': 'center', 'fontSize': '14px'})
+        html.P("Blocked Services in Myanmar, based on OONI data.", style={'textAlign': 'center', 'fontSize': '14px'})
     ], style={'marginBottom': '40px'}),
 
     # ---------- Cloudflare Outage Chart ----------
