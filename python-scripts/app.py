@@ -84,7 +84,7 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
-        html.P("Blocked Services in Myanmar, based on OONI data.", style={'textAlign': 'center', 'fontSize': '14px'})
+        html.P("Planned outages in Syria during national exams.", style={'textAlign': 'center', 'fontSize': '14px'})
     ], style={'marginBottom': '40px'}),
 
     # ---------- Cloudflare Outage Chart ----------
@@ -100,7 +100,7 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
-        html.P("Source: ioda.inetintel.cc.gatech.edu/. Shows a recent outage in Egypt after a fire in Cairo.", style={'textAlign': 'center', 'fontSize': '14px'})
+        html.P("Source: OONI. Blocked Services in Myanmar.", style={'textAlign': 'center', 'fontSize': '14px'})
     ], style={'marginBottom': '40px'}),
 
     # ---------- OONI Section ----------
