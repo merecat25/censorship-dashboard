@@ -74,7 +74,7 @@ app.layout = html.Div(children=[
     # ---------- First Static Chart ----------
     html.Div([
         html.Img(
-            src='/assets/myanmar.png',
+            src='/assets/syria.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -90,7 +90,7 @@ app.layout = html.Div(children=[
     # ---------- Cloudflare Outage Chart ----------
     html.Div([
         html.Img(
-            src='/assets/egypt.png',
+            src='/assets/myanmar.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
