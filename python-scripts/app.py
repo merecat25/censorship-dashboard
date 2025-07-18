@@ -74,7 +74,7 @@ app.layout = html.Div(children=[
     # ---------- First Static Chart ----------
     html.Div([
         html.Img(
-            src='/assets/syria.png',
+            src='/assets/niger-ioda.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -84,13 +84,13 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
-        html.P("Planned outages in Syria during national exams.", style={'textAlign': 'center', 'fontSize': '14px'})
+        html.P("IODA data showing outages in Niger.", style={'textAlign': 'center', 'fontSize': '14px'})
     ], style={'marginBottom': '40px'}),
 
     # ---------- Cloudflare Outage Chart ----------
     html.Div([
         html.Img(
-            src='/assets/myanmar.png',
+            src='/assets/egypt.png',
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -100,7 +100,7 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
-        html.P("Source: OONI. Blocked Services in Myanmar.", style={'textAlign': 'center', 'fontSize': '14px'})
+        html.P("Outage in Egypt due to fire at telecom facility.", style={'textAlign': 'center', 'fontSize': '14px'})
     ], style={'marginBottom': '40px'}),
 
     # ---------- OONI Section ----------
