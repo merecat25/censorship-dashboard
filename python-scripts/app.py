@@ -74,7 +74,7 @@ app.layout = html.Div(children=[
     # ---------- First Static Chart ----------
     html.Div([
         html.Img(
-            src='/assets/angola.png',
+            src=app.get_asset_url("angola.png"),
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -90,7 +90,7 @@ app.layout = html.Div(children=[
     # ---------- Cloudflare Outage Chart ----------
     html.Div([
         html.Img(
-            src='/assets/egypt.png',
+            src=app.get_asset_url("egypt.png"),
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -110,14 +110,14 @@ app.layout = html.Div(children=[
     html.Label("Select a Domain:"),
     dcc.Dropdown(
         id='domain-dropdown',
-        options=[
-            {'label': 'Telegram', 'value': 'telegram.org'},
-            {'label': 'BBC', 'value': 'bbc.com'},
-            {'label': 'Wikipedia', 'value': 'wikipedia.org'},
-            {'label': 'YouTube', 'value': 'youtube.com'},
-            {'label': 'NYTimes', 'value': 'nytimes.com'},
-            {'label': 'Signal', 'value': 'signal.org'}
-        ],
+        options=[{'label': name.capitalize(), 'value': domain} for name, domain in [
+            ("Telegram", "telegram.org"),
+            ("BBC", "bbc.com"),
+            ("Wikipedia", "wikipedia.org"),
+            ("YouTube", "youtube.com"),
+            ("NYTimes", "nytimes.com"),
+            ("Signal", "signal.org")
+        ]],
         value='telegram.org',
         style={'width': '50%'}
     ),
@@ -147,11 +147,10 @@ app.layout = html.Div(children=[
 )
 def update_ooni_components(domain):
     df = fetch_ooni_measurements(domain=domain, limit=100)
-    df = df[df["country"].isin(["RU", "CN", "IR", "IQ", "BY", "ET", "IN", "EG", "TR", "SA", "CU", "VE"])]
+    df = df[df["country"].isin(MONITORED_COUNTRIES)]
     df["time"] = pd.to_datetime(df["time"])
     df["blocked"] = df["blocked"].astype(str)
 
-    # Remove duplicate country+block status combos to declutter the table
     dedup = df.drop_duplicates(subset=["country", "blocked"])
 
     table = dash_table.DataTable(
@@ -196,4 +195,3 @@ def update_news_feed(feed_url):
 # ----------------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
-
