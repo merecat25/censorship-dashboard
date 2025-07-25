@@ -65,7 +65,7 @@ def fetch_news(feed_url):
 # ----------------------------------------
 # Create Dash app
 # ----------------------------------------
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, assets_folder='assets')
 
 app.layout = html.Div(children=[
     html.H1("Censorship Dashboard", style={'textAlign': 'center'}),
