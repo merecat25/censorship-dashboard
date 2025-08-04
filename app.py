@@ -74,7 +74,7 @@ app.layout = html.Div(children=[
     # ---------- First Static Chart ----------
     html.Div([
         html.Img(
-            src=app.get_asset_url("angola.png"),
+            src=app.get_asset_url("germany.png"),
             style={
                 'width': '100%',
                 'maxWidth': '1000px',
@@ -84,7 +84,7 @@ app.layout = html.Div(children=[
                 'borderRadius': '6px'
             }
         ),
-        html.P("Outage likely in response to protests in Angola.", style={'textAlign': 'center', 'fontSize': '14px'})
+        html.P("Outage in Germany likely Due to Infrastructure Upgrade.", style={'textAlign': 'center', 'fontSize': '14px'})
     ], style={'marginBottom': '40px'}),
 
     # ---------- Cloudflare Outage Chart ----------
